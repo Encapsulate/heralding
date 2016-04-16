@@ -156,7 +156,7 @@ if __name__ == '__main__':
     socket.curve_server = True
     port = 4123
     socket.bind('tcp://*:{0}'.format(port))
-    print '[*] Heralding test zmq puller started on port {0}\n'
+    print('[*] Heralding test zmq puller started on port {0}\n')
 
     # Poll and wait for data from test client
     poller = zmq.Poller()
@@ -169,7 +169,7 @@ if __name__ == '__main__':
             if socket in socks and socks[socket] == zmq.POLLIN:
                 topic, data = socket.recv().split(' ', 1)
                 data = json.loads(data)
-                print '[+] Got data at {0}:'.format(datetime.datetime.now())
+                print(('[+] Got data at {0}:'.format(datetime.datetime.now())))
                 pp.pprint(data)
     finally:
         socket.close()

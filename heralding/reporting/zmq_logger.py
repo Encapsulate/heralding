@@ -25,7 +25,7 @@ from zmq.utils import jsonapi
 from zmq.utils.monitor import recv_monitor_message
 
 import heralding.misc
-from base_logger import BaseLogger
+from .base_logger import BaseLogger
 
 logger = logging.getLogger(__name__)
 

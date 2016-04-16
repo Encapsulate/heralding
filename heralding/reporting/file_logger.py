@@ -16,7 +16,7 @@
 import logging
 import csv
 import os
-from base_logger import BaseLogger
+from .base_logger import BaseLogger
 
 logger = logging.getLogger(__name__)
 

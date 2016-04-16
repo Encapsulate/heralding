@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import StringIO
+import io
 import logging
 
 from Crypto.PublicKey import RSA
@@ -35,7 +35,7 @@ class SSH(HandlerBase):
         # generate key
         rsa_key = RSA.generate(1024)
         priv_key_text = rsa_key.exportKey('PEM', pkcs=1)
-        self.key = RSAKey(file_obj=StringIO.StringIO(priv_key_text))
+        self.key = RSAKey(file_obj=io.StringIO(priv_key_text))
         super(SSH, self).__init__(options)
 
     def execute_capability(self, address, socket, session):
@@ -89,7 +89,7 @@ class SshWrapper(SSHHandler):
             if channel is None:
                 # check to see if any thread is running
                 any_running = False
-                for _, thread in self.channels.items():
+                for _, thread in list(self.channels.items()):
                     if thread.is_alive():
                         any_running = True
                         break

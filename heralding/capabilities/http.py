@@ -22,7 +22,7 @@
 
 import base64
 import logging
-from BaseHTTPServer import BaseHTTPRequestHandler
+from .http.server import BaseHTTPRequestHandler
 
 from heralding.capabilities.handlerbase import HandlerBase
 

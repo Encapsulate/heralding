@@ -109,11 +109,13 @@ class Pop3(HandlerBase):
     def send_message(self, session, gsocket, msg):
         try:
             gsocket.sendall(msg + "\n")
-        except socket.error, (value, exceptionMessage):
+        except socket.error as xxx_todo_changeme:
+            (value, exceptionMessage) = xxx_todo_changeme.args
             session.end_session()
 
     def send_data(self, session, gsocket, data):
         try:
             gsocket.sendall(data)
-        except socket.error, (value, exceptionMessage):
+        except socket.error as xxx_todo_changeme1:
+            (value, exceptionMessage) = xxx_todo_changeme1.args
             session.end_session()
