@@ -15,7 +15,7 @@
 
 import logging
 
-import gevent
+import gevent.queue
 import gevent.lock
 import zmq.green as zmq
 from gevent import Greenlet

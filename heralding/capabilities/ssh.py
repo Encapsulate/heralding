@@ -26,7 +26,6 @@ from heralding.capabilities.shared.shell import Commands
 
 logger = logging.getLogger(__name__)
 
-
 class SSH(HandlerBase):
     def __init__(self, options):
         logging.getLogger("telnetsrv.paramiko_ssh ").setLevel(logging.WARNING)

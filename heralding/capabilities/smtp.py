@@ -30,7 +30,7 @@ import mailbox
 import random
 import smtpd
 import time
-from smtpd import NEWLINE, EMPTYSTRING
+import smtpd
 
 from heralding.capabilities.handlerbase import HandlerBase
 
@@ -181,7 +181,7 @@ class SMTPChannel(smtpd.SMTPChannel):
     # This code is taken directly from the underlying smtpd.SMTPChannel
     # support for AUTH is added.
     def found_terminator(self):
-        line = EMPTYSTRING.join(self.__line)
+        line = smtpd.EMPTYSTRING.join(self.__line)
 
         self.__line = []
         if self.__state == self.COMMAND:
@@ -230,7 +230,7 @@ class SMTPChannel(smtpd.SMTPChannel):
                     data.append(text[1:])
                 else:
                     data.append(text)
-            self.__data = NEWLINE.join(data)
+            self.__data = smtpd.NEWLINE.join(data)
             status = self.__server.process_message(
                 self.__peer,
                 self.__mailfrom,

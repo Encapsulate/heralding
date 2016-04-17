@@ -62,6 +62,7 @@ class FtpHandler(object):
                 self.stop()
                 break
             else:
+                resp = resp.decode()
                 try:
                     cmd, args = resp.split(' ', 1)
                 except ValueError:
@@ -108,7 +109,7 @@ class FtpHandler(object):
 
     def respond(self, msg):
         msg += TERMINATOR
-        self.conn.send(msg)
+        self.conn.send(msg.encode())
 
     def stop(self):
         self.session.end_session()

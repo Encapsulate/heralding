@@ -34,7 +34,7 @@ class BaseLogger(Greenlet):
 
         internal_reporting_socket = context.socket(zmq.SUB)
         internal_reporting_socket.connect(SocketNames.INTERNAL_REPORTING.value)
-        internal_reporting_socket.setsockopt(zmq.SUBSCRIBE, '')
+        internal_reporting_socket.setsockopt_string(zmq.SUBSCRIBE, '')
 
         poller = zmq.Poller()
         poller.register(internal_reporting_socket, zmq.POLLIN)

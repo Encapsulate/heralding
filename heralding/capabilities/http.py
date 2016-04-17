@@ -22,14 +22,14 @@
 
 import base64
 import logging
-from .http.server import BaseHTTPRequestHandler
+import http.server
 
 from heralding.capabilities.handlerbase import HandlerBase
 
 logger = logging.getLogger(__name__)
 
 
-class BeeHTTPHandler(BaseHTTPRequestHandler):
+class BeeHTTPHandler(http.server.BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server, httpsession, options):
 
         # Had to call parent initializer later, because the methods used
