@@ -78,7 +78,8 @@ class Pop3Tests(unittest.TestCase):
             fileobj.readline()
 
             for pair in sequence:
-                client.sendall(pair[0] + "\r\n")
+                message = pair[0] + "\r\n"
+                client.sendall(message.encode())
                 response = fileobj.readline().rstrip()
                 self.assertEqual(response, pair[1])
 

@@ -43,9 +43,9 @@ class ZmqLogger(BaseLogger):
         # TODO: auth and encryption (Curve)
         context = heralding.misc.zmq_context
         self.socket = context.socket(zmq.PUSH)
-        self.socket.curve_publickey = client_pub_key
-        self.socket.curve_secretkey = client_secret_key
-        self.socket.curve_serverkey = server_pub_key
+        self.socket.setsockopt_string(zmq.CURVE_PUBLICKEY, client_pub_key)
+        self.socket.setsockopt_string(zmq.CURVE_SECRETKEY, client_secret_key)
+        self.socket.setsockopt_string(zmq.CURVE_SERVERKEY, server_pub_key)
 
         # setup sending tcp socket
         self.socket.setsockopt(zmq.RECONNECT_IVL, 2000)
@@ -60,8 +60,9 @@ class ZmqLogger(BaseLogger):
         self.enabled = False
 
     def handle_log_data(self, data):
-        message = "{0} {1}".format(ZmqMessageTypes.HERALDING_AUTH_LOG.value, jsonapi.dumps(data, default=json_default))
-        self.socket.send(message)
+        message = "{0} {1}".format(ZmqMessageTypes.HERALDING_AUTH_LOG.value, jsonapi.dumps(data,
+                                                                                           default=json_default).decode())
+        self.socket.send(message.encode())
 
     def monitor_worker(self):
         monitor_socket = self.socket.get_monitor_socket()

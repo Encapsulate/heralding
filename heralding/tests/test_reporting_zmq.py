@@ -49,7 +49,7 @@ class ZmqTests(unittest.TestCase):
 
         # start dummy ZMQ pull server
         gevent.spawn(self._start_zmq_puller)
-        self.zmq_server_listning_event.wait(5)
+        self.zmq_server_listning_event.wait(15)
 
         # our local zmq logger
         zmq_url = 'tcp://localhost:{0}'.format(self.zmq_tcp_port)
@@ -64,6 +64,7 @@ class ZmqTests(unittest.TestCase):
 
         # wait until the zmq server put something into the local testing queue
         received_data = self.testing_queue.get(5)
+        received_data = received_data.decode()
         received_data = received_data.split(' ', 1)
         topic, message = received_data[0], jsonapi.loads(received_data[1])
 
@@ -82,7 +83,8 @@ class ZmqTests(unittest.TestCase):
 
         # Bind our mock zmq pull server
         socket = context.socket(zmq.PULL)
-        socket.curve_secretkey = "}vxNPm8lOJT1yvqu7-A<m<w>7OZ1ok<d?Qbq+a?5"
+        curve_secretkey = "}vxNPm8lOJT1yvqu7-A<m<w>7OZ1ok<d?Qbq+a?5"
+        socket.setsockopt_string(zmq.CURVE_SECRETKEY, curve_secretkey)
         socket.curve_server = True
         self.zmq_tcp_port = socket.bind_to_random_port('tcp://*', min_port=40000, max_port=50000, max_tries=10)
 

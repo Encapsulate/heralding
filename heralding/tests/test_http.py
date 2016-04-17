@@ -26,7 +26,7 @@ gevent.monkey.patch_all()
 
 from gevent.server import StreamServer
 
-from heralding.capabilities import http
+from heralding.capabilities import http as heralding_http
 from heralding.reporting.reporting_relay import ReportingRelay
 
 import unittest
@@ -49,7 +49,7 @@ class HttpTests(unittest.TestCase):
         # Use uncommon port so that you can run the test even if the Honeypot
         # is running.
         options = {'enabled': 'True', 'port': 0, 'users': {'test': 'test'}}
-        cap = http.Http(options)
+        cap = heralding_http.Http(options)
         srv = StreamServer(('0.0.0.0', 0), cap.handle_session)
         srv.start()
 

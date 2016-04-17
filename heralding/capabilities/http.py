@@ -43,7 +43,7 @@ class BeeHTTPHandler(http.server.BaseHTTPRequestHandler):
         else:
             self._banner = 'Microsoft-IIS/5.0'
         self._session = httpsession
-        BaseHTTPRequestHandler.__init__(self, request, client_address, server)
+        http.server.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
         self._session.end_session()
 
     def do_HEAD(self):
@@ -59,16 +59,17 @@ class BeeHTTPHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        if self.headers.getheader('Authorization') is None:
+        print(self.headers)
+        if 'Authorization' not in self.headers:
             self.do_AUTHHEAD()
         else:
-            hdr = self.headers.getheader('Authorization')
+            hdr = self.headers['Authorization']
             _, enc_uname_pwd = hdr.split(' ')
             dec_uname_pwd = base64.b64decode(enc_uname_pwd)
             uname, pwd = dec_uname_pwd.split(':')
             self._session.add_auth_attempt('plaintext', username=uname, password=pwd)
             self.do_AUTHHEAD()
-            self.wfile.write(self.headers.getheader('Authorization'))
+            self.wfile.write(self.headers['Authorization'])
             self.wfile.write('not authenticated')
 
         self.request.close()

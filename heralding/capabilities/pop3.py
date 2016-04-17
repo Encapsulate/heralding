@@ -108,7 +108,8 @@ class Pop3(HandlerBase):
 
     def send_message(self, session, gsocket, msg):
         try:
-            gsocket.sendall(msg + "\n")
+            send_message = msg + "\n"
+            gsocket.sendall(send_message.encode())
         except socket.error as xxx_todo_changeme:
             (value, exceptionMessage) = xxx_todo_changeme.args
             session.end_session()
