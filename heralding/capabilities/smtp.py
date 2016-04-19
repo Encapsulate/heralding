@@ -31,6 +31,7 @@ import random
 import smtpd
 import time
 import smtpd
+import traceback
 
 from heralding.capabilities.handlerbase import HandlerBase
 
@@ -63,7 +64,7 @@ class SMTPChannel(smtpd.SMTPChannel):
         self.session = session
         self.options = opts
 
-        smtpd.SMTPChannel.__init__(self, smtp_server, newsocket, fromaddr)
+        smtpd.SMTPChannel.__init__(self, smtp_server, newsocket, fromaddr, decode_data=True)
         asynchat.async_chat.__init__(self, newsocket, map=smtp_map)
 
         # Now we set the initflag, so that push() will work again.
@@ -74,8 +75,9 @@ class SMTPChannel(smtpd.SMTPChannel):
     def push(self, msg):
         # Only send data after superclass initialization
         if self._initflag:
-            transmit_msg = msg + '\r\n'
-            asynchat.async_chat.push(self, transmit_msg)
+            smtpd.SMTPChannel.push(self, msg)
+            #transmit_msg = msg + '\r\n'
+            #asynchat.async_chat.push(self, transmit_msg.encode())
 
     def close_quit(self):
         self.close_when_done()
@@ -86,14 +88,14 @@ class SMTPChannel(smtpd.SMTPChannel):
         self.close_when_done()
         self.close_quit()
 
-    def collect_incoming_data(self, data):
-        self.__line.append(data)
+    #def collect_incoming_data(self, data):
+    #    self.__line.append(data)
 
     def smtp_EHLO(self, arg):
         if not arg:
             self.push('501 Syntax: HELO/EHLO hostname')
             return
-        if self.__greeting:
+        if self.seen_greeting:
             self.push('503 Duplicate HELO/EHLO')
         else:
             self.push('250-%s Hello %s' % (self.banner, arg))
@@ -101,7 +103,7 @@ class SMTPChannel(smtpd.SMTPChannel):
             self.push('250 EHLO')
 
     def smtp_AUTH(self, arg):
-
+        print('AUTH')
         if (self.plain_authenticating and self.login_pass_authenticating and
                 self.cram_authenticating):
             self.push('503 Bad sequence of commands')
@@ -109,8 +111,10 @@ class SMTPChannel(smtpd.SMTPChannel):
 
         if self.cram_authenticating:
             self.cram_authenticating = False
-            cred = base64.b64decode(arg)
-            self.username, self.digest = cred.split()
+            print('Want to decode: {0}'.format(repr(arg)))
+            decoded_bytes = base64.b64decode(arg).decode('ascii')
+            print('Now decoded: {0}'.format(repr(decoded_bytes)))
+            self.username, self.digest = decoded_bytes.split()
             if self.sent_cram_challenge is None:
                 self.push('451 Internal confusion')
                 return
@@ -121,14 +125,14 @@ class SMTPChannel(smtpd.SMTPChannel):
 
         elif self.login_uname_authenticating:
             self.login_uname_authenticating = False
-            self.username = base64.b64decode(arg)
-            self.push('334 ' + base64.b64encode('Password:'))
+            self.username = base64.b64decode(arg).decode('ascii')
+            self.push('334 ' + base64.b64encode(b'Password:').decode('ascii'))
             self.login_pass_authenticating = True
             return
 
         elif self.login_pass_authenticating:
             self.login_pass_authenticating = False
-            self.password = base64.b64decode(arg)
+            self.password = base64.b64decode(arg).decode('ascii')
             self.session.add_auth_attempt('plaintext', username=self.username, password=self.password)
 
             self.push('535 authentication failed')
@@ -137,7 +141,7 @@ class SMTPChannel(smtpd.SMTPChannel):
         elif self.plain_authenticating:
             self.plain_authenticating = False
             # Our arg will ideally be the username/password
-            _, self.username, self.password = base64.b64decode(arg).split('\x00')
+            _, self.username, self.password = base64.b64decode(arg).decode('ascii').split('\x00')
             self.session.add_auth_attempt('plaintext', username=self.username, password=self.password)
             self.push('535 authentication failed')
             self.close_quit()
@@ -151,7 +155,7 @@ class SMTPChannel(smtpd.SMTPChannel):
                 # them. The space after the 334 is important as said in the RFC
                 self.push("334 ")
                 return
-            _, self.username, self.password = base64.b64decode(param).split('\x00')
+            _, self.username, self.password = base64.b64decode(param).decode('ascii').split('\x00')
             self.session.add_auth_attempt('plaintext', username=self.username, password=self.password)
             self.push('535 authentication failed')
             self.close_quit()
@@ -160,11 +164,11 @@ class SMTPChannel(smtpd.SMTPChannel):
             param = arg.split()
             if len(param) > 1:
                 self.username = base64.b64decode(param[1])
-                self.push('334 ' + base64.b64encode('Password:'))
+                self.push('334 ' + base64.b64encode(b'Password:').decode('ascii'))
                 self.login_pass_authenticating = True
                 return
             else:
-                self.push('334 ' + base64.b64encode('Username:'))
+                self.push('334 ' + base64.b64encode(b'Username:').decode('ascii'))
                 self.login_uname_authenticating = True
                 return
 
@@ -175,20 +179,24 @@ class SMTPChannel(smtpd.SMTPChannel):
 
             # challenge is of the form '<24609.1047914046@awesome.host.com>'
             self.sent_cram_challenge = "<" + str(r) + "." + str(t) + "@" + self.__fqdn + ">"
-            self.push("334 " + base64.b64encode(self.sent_cram_challenge))
+            self.push("334 " + base64.b64encode(self.sent_cram_challenge.encode()).decode())
             return
 
     # This code is taken directly from the underlying smtpd.SMTPChannel
     # support for AUTH is added.
     def found_terminator(self):
-        line = smtpd.EMPTYSTRING.join(self.__line)
-
-        self.__line = []
-        if self.__state == self.COMMAND:
+        print('blah')
+        line = self._emptystring.join(self.received_lines)
+        print('blah2')
+        print('Data:', repr(line), file=smtpd.DEBUGSTREAM)
+        self.received_lines = []
+        if self.smtp_state == self.COMMAND:
+            sz, self.num_bytes = self.num_bytes, 0
             if not line:
                 self.push('500 Error: bad syntax')
                 return
-            method = None
+            if not self._decode_data:
+                line = str(line, 'utf-8')
             i = line.find(' ')
 
             if (self.login_uname_authenticating or
@@ -205,44 +213,46 @@ class SMTPChannel(smtpd.SMTPChannel):
             else:
                 command = line[:i].upper()
                 arg = line[i + 1:].strip()
-
-            # White list of operations that are allowed prior to AUTH.
-            if command not in ['AUTH', 'EHLO', 'HELO', 'NOOP', 'RSET', 'QUIT']:
-                self.push('530 Authentication required')
-                self.close_quit()
+            max_sz = (self.command_size_limits[command]
+                      if self.extended_smtp else self.command_size_limit)
+            if sz > max_sz:
+                self.push('500 Error: line too long')
                 return
-
             method = getattr(self, 'smtp_' + command, None)
             if not method:
-                self.push('502 Error: command "%s" not implemented' % command)
+                self.push('500 Error: command "%s" not recognized' % command)
                 return
             method(arg)
             return
         else:
-            if self.__state != self.DATA:
+            if self.smtp_state != self.DATA:
                 self.push('451 Internal confusion')
+                self.num_bytes = 0
                 return
-                # Remove extraneous carriage returns and de-transparency according
-            # to RFC 821, Section 4.5.2.
+            if self.data_size_limit and self.num_bytes > self.data_size_limit:
+                self.push('552 Error: Too much mail data')
+                self.num_bytes = 0
+                return
+            # Remove extraneous carriage returns and de-transparency according
+            # to RFC 5321, Section 4.5.2.
             data = []
-            for text in line.split('\r\n'):
-                if text and text[0] == '.':
+            for text in line.split(self._linesep):
+                if text and text[0] == self._dotsep:
                     data.append(text[1:])
                 else:
                     data.append(text)
-            self.__data = smtpd.NEWLINE.join(data)
-            status = self.__server.process_message(
-                self.__peer,
-                self.__mailfrom,
-                self.__rcpttos,
-                self.__data
-            )
-            self.__rcpttos = []
-            self.__mailfrom = None
-            self.__state = self.COMMAND
-            self.set_terminator('\r\n')
+            self.received_data = self._newline.join(data)
+            args = (self.peer, self.mailfrom, self.rcpttos, self.received_data)
+            kwargs = {}
+            if not self._decode_data:
+                kwargs = {
+                    'mail_options': self.mail_options,
+                    'rcpt_options': self.rcpt_options,
+                }
+            status = self.smtp_server.process_message(*args, **kwargs)
+            self._set_post_data_state()
             if not status:
-                self.push('250 Ok')
+                self.push('250 OK')
             else:
                 self.push(status)
 
